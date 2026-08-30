@@ -1,0 +1,321 @@
+import os
+from datetime import datetime
+from openpyxl import Workbook
+from openpyxl.chart import BarChart, LineChart, Reference
+
+
+spreadsheet = ""
+
+
+# This function converts the user's numerical data.
+# Argument: data - float
+# Return value: converted numerical value - float
+def convertData(data):
+    global spreadsheet
+
+    if spreadsheet == "temperature":
+        convertedValue = (data - 32) * 5 / 9
+
+    elif spreadsheet == "weight":
+        convertedValue = data / 2.205
+
+    elif spreadsheet == "rain":
+        convertedValue = data * 2.54
+
+    return convertedValue
+
+
+# This function adds comma-separated data to a CSV file.
+# Arguments: path - string, data - string
+# Return value: True if successful and False if unsuccessful
+def insertData(path, data):
+    try:
+        with open(path, "a") as csvFile:
+            csvFile.write(data + "\n")
+
+        return True
+
+    except:
+        print("Error: Unable to write data to the file.")
+        return False
+
+
+# This function reads and displays data from a CSV file.
+# Argument: path - string
+# Return value: None
+def viewData(path):
+    try:
+        print("The file", path, "contains:")
+
+        with open(path, "r") as csvFile:
+            print(csvFile.read())
+
+    except:
+        print("Error: Unable to read the file.")
+
+
+# This function gets data from the user, converts it,
+# and saves the information into ZooData.csv.
+# Arguments: None
+# Return value: None
+def getInput():
+    try:
+        numberEntries = int(input("How many entries are you inputting? "))
+
+        for i in range(numberEntries):
+
+            date = input("\nEnter a date: ")
+
+            if spreadsheet == "temperature":
+                value = float(
+                    input("Enter the highest temp for the inputted date: ")
+                )
+
+            elif spreadsheet == "weight":
+                value = float(
+                    input("Enter the weight in pounds for the inputted date: ")
+                )
+
+            elif spreadsheet == "rain":
+                value = float(
+                    input("Enter the rain amount in inches for the inputted date: ")
+                )
+
+            # Calls convertData(data), which requires a float argument
+            # and returns the converted value as a float.
+            convertedValue = convertData(value)
+
+            data = str(date) + "," + str(value) + "," + str(convertedValue)
+
+            try:
+                saved = insertData("ZooData.csv", data)
+
+                if saved:
+                    print(
+                        "The following data was saved at",
+                        datetime.now(),
+                        ":",
+                        data
+                    )
+
+            except:
+                print("Error: Unable to save data.")
+
+    except:
+        print("Error: Invalid input.")
+
+
+# This function reads CSV data and creates an Excel chart.
+# Arguments: path - string containing the CSV file path,
+# chartType - string containing either "line" or "bar"
+# Return value: None
+def createChart(path, chartType):
+    global spreadsheet
+
+    try:
+        print("\nChoose the data source:")
+
+        if spreadsheet == "temperature":
+            print("1 Fahrenheit")
+            print("2 Celsius")
+            initialLabel = "Fahrenheit"
+            convertedLabel = "Celsius"
+
+        elif spreadsheet == "weight":
+            print("1 Pounds")
+            print("2 Kilograms")
+            initialLabel = "Pounds"
+            convertedLabel = "Kilograms"
+
+        elif spreadsheet == "rain":
+            print("1 Inches")
+            print("2 Centimeters")
+            initialLabel = "Inches"
+            convertedLabel = "Centimeters"
+
+        dataChoice = input("Enter your selection: ")
+
+        if dataChoice == "1":
+            columnNumber = 2
+            yLabel = initialLabel
+
+        elif dataChoice == "2":
+            columnNumber = 3
+            yLabel = convertedLabel
+
+        else:
+            print("Error: Invalid data source.")
+            return
+
+        dates = []
+        values = []
+
+        # Open the CSV file and extract the requested data.
+        with open(path, "r") as csvFile:
+
+            for line in csvFile:
+
+                row = line.strip().split(",")
+
+                if len(row) >= 3:
+                    dates.append(row[0])
+
+                    if columnNumber == 2:
+                        values.append(float(row[1]))
+
+                    else:
+                        values.append(float(row[2]))
+
+        # Create a new Excel workbook.
+        workbook = Workbook()
+        worksheet = workbook.active
+        worksheet.title = "Report"
+
+        # Add column headings.
+        worksheet["A1"] = "Date"
+        worksheet["B1"] = yLabel
+
+        # Add the CSV information to the Excel worksheet.
+        for i in range(len(dates)):
+            worksheet.cell(row=i + 2, column=1, value=dates[i])
+            worksheet.cell(row=i + 2, column=2, value=values[i])
+
+        # Create the selected chart type.
+        if chartType == "bar":
+            chart = BarChart()
+
+        elif chartType == "line":
+            chart = LineChart()
+
+        else:
+            print("Error: Invalid chart type.")
+            return
+
+        # Select the values and dates for the chart.
+        data = Reference(
+            worksheet,
+            min_col=2,
+            min_row=1,
+            max_row=len(values) + 1
+        )
+
+        categories = Reference(
+            worksheet,
+            min_col=1,
+            min_row=2,
+            max_row=len(dates) + 1
+        )
+
+        chart.add_data(data, titles_from_data=True)
+        chart.set_categories(categories)
+
+        # Add the chart title and axis labels.
+        currentDate = datetime.now().strftime("%m/%d/%Y")
+
+        chart.title = "Sahfad8846 " + currentDate
+        chart.x_axis.title = "Date"
+        chart.y_axis.title = yLabel
+
+        # Insert the chart into the worksheet.
+        worksheet.add_chart(chart, "D2")
+
+        # Save final.xlsx to the Desktop.
+        desktop = os.path.join(os.path.expanduser("~"), "Desktop")
+        filePath = os.path.join(desktop, "final.xlsx")
+
+        workbook.save(filePath)
+
+        print("The report was successfully saved here:")
+        print(filePath)
+
+    except Exception as error:
+        print("Error: Unable to generate the chart.")
+        print(error)
+
+
+# This function asks the user which graph to create and calls createChart.
+# Argument: path - string containing the CSV file path
+# Return value: None
+def generateReport(path):
+
+    print("\nChoose a graph type:")
+    print("1 Line Chart")
+    print("2 Bar Chart")
+
+    graphChoice = input("Enter your selection: ")
+
+    if graphChoice == "1":
+        createChart(path, "line")
+
+    elif graphChoice == "2":
+        createChart(path, "bar")
+
+    else:
+        print("Error: Invalid graph type.")
+
+
+print("Sahfad8846's Spreadsheet Automation Menu")
+print("Choose a number from the following options")
+print("1 Input Data")
+print("2 View Current Data")
+print("3 Generate Report")
+
+choice = input("Enter your selection: ")
+
+
+if choice == "1":
+
+    print("\nChoose the spreadsheet:")
+    print("1 Temperature")
+    print("2 Weight")
+    print("3 Rain")
+
+    spreadsheetChoice = input("Enter your selection: ")
+
+    if spreadsheetChoice == "1":
+        spreadsheet = "temperature"
+        getInput()
+
+    elif spreadsheetChoice == "2":
+        spreadsheet = "weight"
+        getInput()
+
+    elif spreadsheetChoice == "3":
+        spreadsheet = "rain"
+        getInput()
+
+    else:
+        print("Error: Invalid spreadsheet selection")
+
+
+elif choice == "2":
+    viewData("ZooData.csv")
+
+
+elif choice == "3":
+
+    print("\nChoose the spreadsheet used for this report:")
+    print("1 Temperature")
+    print("2 Weight")
+    print("3 Rain")
+
+    spreadsheetChoice = input("Enter your selection: ")
+
+    if spreadsheetChoice == "1":
+        spreadsheet = "temperature"
+        generateReport("ZooData.csv")
+
+    elif spreadsheetChoice == "2":
+        spreadsheet = "weight"
+        generateReport("ZooData.csv")
+
+    elif spreadsheetChoice == "3":
+        spreadsheet = "rain"
+        generateReport("ZooData.csv")
+
+    else:
+        print("Error: Invalid spreadsheet selection")
+
+
+else:
+    print("Error: The chosen functionality is not implemented yet")
