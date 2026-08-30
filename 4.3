@@ -1,0 +1,133 @@
+from datetime import datetime
+
+
+spreadsheet = ""
+
+
+# This function converts the user's value based on the selected spreadsheet.
+def convertData(data):
+    global spreadsheet
+
+    if spreadsheet == "temperature":
+        convertedValue = (data - 32) * 5 / 9
+
+    elif spreadsheet == "weight":
+        convertedValue = data / 2.205
+
+    elif spreadsheet == "rain":
+        convertedValue = data * 2.54
+
+    return convertedValue
+
+
+# This function inserts comma-separated data into a CSV file.
+def insertData(path, data):
+    try:
+        with open(path, "a") as csvFile:
+            csvFile.write(data + "\n")
+
+        return True
+
+    except:
+        print("Error: Unable to write data to the file.")
+        return False
+
+
+# This function reads and displays the contents of a CSV file.
+def viewData(path):
+    try:
+        print("The file", path, "contains:")
+
+        with open(path, "r") as csvFile:
+            print(csvFile.read())
+
+    except:
+        print("Error: Unable to read the file.")
+
+
+# This function gets user input, converts the data,
+# and saves each entry into ZooData.csv.
+def getInput():
+
+    try:
+        numberEntries = int(input("How many entries are you inputting? "))
+
+        for i in range(numberEntries):
+
+            date = input("\nEnter a date: ")
+
+            if spreadsheet == "temperature":
+                value = float(
+                    input("Enter the highest temp for the inputted date: ")
+                )
+
+            elif spreadsheet == "weight":
+                value = float(
+                    input("Enter the weight in pounds for the inputted date: ")
+                )
+
+            elif spreadsheet == "rain":
+                value = float(
+                    input("Enter the rain amount in inches for the inputted date: ")
+                )
+
+            # Calls convertData(data), requires a numerical value,
+            # and returns the converted numerical value.
+            convertedValue = convertData(value)
+
+            data = str(date) + "," + str(value) + "," + str(convertedValue)
+
+            saved = insertData("ZooData.csv", data)
+
+            if saved:
+                print(
+                    "The following data was saved at",
+                    datetime.now(),
+                    ":",
+                    data
+                )
+
+    except:
+        print("Error: Invalid input.")
+
+
+print("Sahfad8846's Spreadsheet Automation Menu")
+print("Choose a number from the following options")
+print("1 Input Data")
+print("2 View Current Data")
+print("3 Generate Report")
+
+choice = input("Enter your selection: ")
+
+
+if choice == "1":
+
+    print("\nChoose the spreadsheet:")
+    print("1 Temperature")
+    print("2 Weight")
+    print("3 Rain")
+
+    spreadsheetChoice = input("Enter your selection: ")
+
+    if spreadsheetChoice == "1":
+        spreadsheet = "temperature"
+        getInput()
+
+    elif spreadsheetChoice == "2":
+        spreadsheet = "weight"
+        getInput()
+
+    elif spreadsheetChoice == "3":
+        spreadsheet = "rain"
+        getInput()
+
+    else:
+        print("Error: Invalid spreadsheet selection")
+
+
+elif choice == "2":
+    viewData("ZooData.csv")
+
+
+else:
+    print("Error: The chosen functionality is not implemented yet")
